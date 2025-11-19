@@ -7,19 +7,42 @@ app = Flask(__name__)
 
 ARCHIVO = 'inv.json'
 
+# ============================
+#   FUNCIONES DE ARCHIVO
+# ============================
+
 def cargar_datos():
     if os.path.exists(ARCHIVO):
         with open(ARCHIVO, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            try:
+                return json.load(f)
+            except:
+                return {}
     return {}
 
 def guardar_datos(data):
     with open(ARCHIVO, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+# ============================
+#   RUTA DE PRUEBA
+# ============================
+
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({"status": "online", "message": "API funcionando"})
+
+
+# ============================
+#   RUTA PRINCIPAL /inventario
+# ============================
+
 @app.route('/inventario', methods=['POST'])
 def inventario():
     input_data = request.get_json()
+
+    if not input_data:
+        return jsonify({"status": "error", "message": "JSON vacío o inválido"}), 400
 
     # Validación base
     if not all(k in input_data for k in ['type', 'botID', 'userID']):
@@ -95,9 +118,7 @@ def inventario():
 
         inventario = data.get(bot_id, {}).get(user_id, [])
 
-        # ------------------------------------------------------------
-        # 🔸 FORMATO 1 — LISTA SIMPLE
-        # ------------------------------------------------------------
+        # Formato lista
         if input_data.get('format') == 'lista':
             if not inventario:
                 return jsonify({
@@ -116,9 +137,7 @@ def inventario():
                 'lista': lista_formato
             })
 
-        # ------------------------------------------------------------
-        # 🔸 FORMATO 2 — TODAS LAS CATEGORÍAS
-        # ------------------------------------------------------------
+        # Categorías agrupadas
         if input_data.get('format') == 'categoria' and 'categoria' not in input_data:
             if not inventario:
                 return jsonify({
@@ -141,9 +160,7 @@ def inventario():
                 'categorias': categorias
             })
 
-        # ------------------------------------------------------------
-        # 🔸 FORMATO 3 — CATEGORÍA ESPECÍFICA
-        # ------------------------------------------------------------
+        # Categoría específica
         if input_data.get('format') == 'categoria' and 'categoria' in input_data:
 
             categoria_buscada = input_data['categoria']
@@ -166,9 +183,7 @@ def inventario():
                 'lista': filtrados
             })
 
-        # ------------------------------------------------------------
-        # 🔎 GET normal para un objeto
-        # ------------------------------------------------------------
+        # GET normal
         if 'objeto' not in input_data:
             return jsonify({'status': 'error', 'message': 'Falta el campo objeto'}), 400
 
@@ -247,5 +262,10 @@ def inventario():
         return jsonify({'status': 'error', 'message': 'Tipo de operación inválido'}), 400
 
 
+# ============================
+#   EJECUTAR SERVIDOR
+# ============================
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
