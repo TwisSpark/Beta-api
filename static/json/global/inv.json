@@ -1,16 +1,1 @@
-{
-  "1400360704917245973": {
-    "990122876411727882": [
-      {
-        "id": "8998ee52-bd91-442a-8560-5700e70b10af",
-        "objeto": "Corazón",
-        "description": "Un corazón con amor",
-        "cantidad": 1,
-        "rareza": "épica",
-        "precio": 2.03e+18,
-        "emoji": "🤍",
-        "categoria": "sola"
-      }
-    ]
-  }
-}
+{}
