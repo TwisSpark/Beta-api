@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, render_template
 import json
 import os
@@ -5,10 +6,10 @@ from uuid import uuid4
 
 app = Flask(__name__)
 
-# ============================
-#   RUTA DEL ARCHIVO JSON
-# ============================
+# Ruta correcta hacia tu inv.json dentro de static
 ARCHIVO = os.path.join('static', 'json', 'global', 'inv.json')
+
+# Crear carpetas si no existen
 os.makedirs(os.path.dirname(ARCHIVO), exist_ok=True)
 
 # Crear archivo si no existe
@@ -19,20 +20,30 @@ if not os.path.exists(ARCHIVO):
 # ============================
 #   FUNCIONES DE ARCHIVO
 # ============================
+
 def cargar_datos():
-    try:
+    if os.path.exists(ARCHIVO):
         with open(ARCHIVO, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except:
-        return {}
+            try:
+                return json.load(f)
+            except:
+                return {}
+    return {}
 
 def guardar_datos(data):
     with open(ARCHIVO, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 # ============================
+# Formatear cantidad/precio con coma y sin decimales
+# ============================
+def format_number(n):
+    return f"{int(n):,}"
+
+# ============================
 #   RUTA DE PRUEBA
 # ============================
+
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({"status": "online", "message": "API funcionando"})
@@ -40,13 +51,13 @@ def home():
 # ============================
 #   RUTA PRINCIPAL /inventario
 # ============================
+
 @app.route('/inventario', methods=['POST'])
 def inventario():
     input_data = request.get_json()
     if not input_data:
         return jsonify({"status": "error", "message": "JSON vacío o inválido"}), 400
 
-    # Campos obligatorios
     if not all(k in input_data for k in ['type', 'botID', 'userID']):
         return jsonify({'status': 'error','message': 'Faltan parámetros obligatorios'}), 400
 
@@ -57,36 +68,28 @@ def inventario():
     data = cargar_datos()
     if bot_id not in data: data[bot_id] = {}
     if user_id not in data[bot_id]: data[bot_id][user_id] = []
+
     inventario = data[bot_id][user_id]
 
-    # ====================
-    # 🟢 ADD
-    # ====================
+    # ========================= ADD =========================
     if type_op == 'add':
         if 'objeto' not in input_data or 'description' not in input_data:
-            return jsonify({'status':'error','message':'Faltan objeto o description'}), 400
+            return jsonify({'status': 'error', 'message': 'Faltan objeto o description'}), 400
 
-        objeto = str(input_data['objeto'])
-        descripcion = str(input_data['description'])
-        try:
-            cantidad = max(1, int(input_data.get('cantidad', 1)))
-        except:
-            cantidad = 1
-        try:
-            precio = round(float(input_data.get('precio', 0)), 2)
-        except:
-            precio = 0
-        rareza = str(input_data.get('rareza', 'común'))
-        emoji = str(input_data.get('emoji', '📦'))
-        categoria = str(input_data.get('categoria', 'general'))
+        objeto = input_data['objeto']
+        descripcion = input_data['description']
+        cantidad = max(1, int(input_data.get('cantidad', 1)))
+        rareza = input_data.get('rareza', 'común')
+        precio = int(input_data.get('precio', 0))  # Convertimos a entero
+        emoji = input_data.get('emoji', '📦')
+        categoria = input_data.get('categoria', 'general')
 
-        # Revisar si ya existe el item
         encontrado = False
         for item in inventario:
             if item['objeto'] == objeto:
                 item['cantidad'] += cantidad
-                item['precio'] = precio
                 item['rareza'] = rareza
+                item['precio'] = precio
                 item['emoji'] = emoji
                 item['description'] = descripcion
                 item['categoria'] = categoria
@@ -106,34 +109,42 @@ def inventario():
             })
 
         guardar_datos(data)
-        total_items = sum(i['cantidad'] for i in inventario)
+
         return jsonify({
-            'status':'success',
+            'status': 'success',
             'message': 'Objeto agregado' if not encontrado else 'Cantidad actualizada',
             'objeto': objeto,
-            'cantidad': cantidad,
-            'total_items': total_items,
-            'categoria': categoria
+            'cantidad': format_number(cantidad),
+            'categoria': categoria,
+            'description': descripcion,
+            'rareza': rareza,
+            'precio': format_number(precio),
+            'emoji': emoji
         })
 
-    # ====================
-    # 🟡 GET
-    # ====================
+    # ========================= GET =========================
     elif type_op == 'get':
         if not inventario:
-            return jsonify({'status':'success','message':'Nada por aquí… solo Sparkify, la futura reina del reino','inventario':[]})
+            return jsonify({
+                'status':'success',
+                'message':'Nada por aquí… solo Sparkify, la futura reina del reino',
+                'inventario': []
+            })
 
-        fmt = input_data.get('format', 'lista')
+        if input_data.get('format') == 'lista':
+            lista = [
+                f"{i.get('emoji','📦')} {i['objeto']} (×{format_number(i['cantidad'])})"
+                for i in inventario
+            ]
+            return jsonify({'status':'success','inventario': lista})
 
-        if fmt == 'lista':
-            lista = [f"{i.get('emoji','📦')} {i['objeto']} (×{i['cantidad']})" for i in inventario]
-            return jsonify({'status':'success','total_items': sum(i['cantidad'] for i in inventario),'inventario': lista})
-
-        if fmt == 'categoria':
+        if input_data.get('format') == 'categoria':
             categorias = {}
             for i in inventario:
                 cat = i.get('categoria','general')
-                categorias.setdefault(cat, []).append(f"{i.get('emoji','📦')} {i['objeto']} (×{i['cantidad']})")
+                categorias.setdefault(cat, []).append(
+                    f"{i.get('emoji','📦')} {i['objeto']} (×{format_number(i['cantidad'])})"
+                )
             for cat, items in categorias.items():
                 if not items:
                     categorias[cat] = ['Nada por aquí… solo Sparkify, la futura reina del reino']
@@ -150,17 +161,12 @@ def inventario():
 
         return jsonify({'status':'success','inventario': inventario})
 
-    # ====================
-    # 🔴 DELETE
-    # ====================
+    # ======================== DELETE =======================
     elif type_op == 'delete':
         if 'objeto' not in input_data:
             return jsonify({'status':'error','message':'Falta objeto'}), 400
         objeto = input_data['objeto']
-        cantidad = input_data.get('cantidad', None)
-        if cantidad:
-            try: cantidad = int(cantidad)
-            except: cantidad = None
+        cantidad = int(input_data.get('cantidad',0)) if 'cantidad' in input_data else None
 
         for i, item in enumerate(inventario):
             if item['objeto']==objeto:
@@ -177,9 +183,7 @@ def inventario():
                 return jsonify({'status':'success','message':'Objeto eliminado'})
         return jsonify({'status':'error','message':'Objeto no encontrado'}), 404
 
-    # ====================
-    # 🧼 CLEAR
-    # ====================
+    # ======================== CLEAR =======================
     elif type_op == 'clear':
         count = len(inventario)
         data[bot_id][user_id] = []
@@ -189,8 +193,8 @@ def inventario():
     else:
         return jsonify({'status':'error','message':'Tipo de operación inválido'}), 400
 
-# ============================
-#   RUTAS HTML
+# ============================  
+#   RUTAS HTML  
 # ============================
 @app.route('/rutas')
 def ver_rutas():
@@ -202,8 +206,8 @@ def ver_rutas():
         })
     return render_template('global/rutas.html', rutas=rutas)
 
-# ============================
-#   EJECUTAR SERVIDOR
+# ============================  
+#   EJECUTAR SERVIDOR  
 # ============================
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
