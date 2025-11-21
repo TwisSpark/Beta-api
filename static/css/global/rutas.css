@@ -1,0 +1,188 @@
+/* ===================== RESET ===================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+    color: #e0e0e0;
+    overflow-x: hidden;
+}
+
+/* ===================== HERO ===================== */
+.hero {
+    min-height: 25vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 2rem 2rem;
+    background: linear-gradient(135deg, #111 0%, #222 100%);
+    border-bottom: 2px solid #d2936c;
+}
+
+.hero h1 {
+    font-size: 2.8rem;
+    color: #d2936c;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 15px rgba(210,147,108,0.6);
+}
+
+.hero p {
+    font-size: 1.2rem;
+    color: #ccc;
+}
+
+/* ===================== FEATURES GRID ===================== */
+.features {
+    padding: 3rem 2rem;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2rem;
+    color: #d2936c;
+    margin-bottom: 2rem;
+    text-shadow: 0 0 15px rgba(210,147,108,0.3);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* ===================== CARD ===================== */
+.card {
+    background: linear-gradient(135deg, #1a1a1a 0%, #111 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 2px solid rgba(210,147,108,0.3);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 30px rgba(210,147,108,0.5);
+}
+
+.card:focus,
+.card:active {
+    outline: none; /* Quita el azul raro */
+}
+
+/* ===================== MAC-STYLE HEADER ===================== */
+.mac-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.mac-header span {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.mac-header .red {
+    background-color: #ff5f57;
+}
+
+.mac-header .yellow {
+    background-color: #ffbd2e;
+}
+
+.mac-header .green {
+    background-color: #28c941;
+}
+
+/* ===================== CARD CONTENT ===================== */
+.card-title {
+    font-size: 1.4rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: #d2936c;
+    word-break: break-word; /* evita que el texto rompa la tarjeta */
+}
+
+.card-description {
+    font-size: 0.95rem;
+    color: #ccc;
+    margin-bottom: 1rem;
+    min-height: 45px; /* para que todas las tarjetas tengan altura uniforme */
+}
+
+/* ===================== TAG ===================== */
+.card .card-tag {
+    display: inline-block;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    background-color: #222;
+    padding: 3px 6px;
+    margin-bottom: 10px;
+    color: #d2936c;
+    font-weight: bold;
+}
+
+/* ===================== CODE EDITOR ===================== */
+.code-editor {
+    background-color: #111;
+    color: #dcdcdc;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    border-radius: 6px;
+    padding: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid #333;
+    flex-grow: 1;
+    word-break: break-word; /* rompe líneas largas */
+}
+
+.code-editor pre {
+    margin: 0;
+}
+
+/* Scrollbar */
+.code-editor::-webkit-scrollbar {
+    height: 6px;
+}
+
+.code-editor::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 3px;
+}
+
+/* ===================== FOOTER ===================== */
+footer {
+    background: #111;
+    padding: 2rem;
+    text-align: center;
+    border-top: 2px solid #d2936c;
+    margin-top: 3rem;
+}
+
+footer p {
+    color: #ccc;
+    margin-bottom: 0.5rem;
+}
+
+/* ===================== MEDIA QUERIES ===================== */
+@media(max-width:768px){
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+}

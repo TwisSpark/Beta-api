@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rutas de Inventario - Sparkify</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global/rutas.css') }}">
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div>
+    <h1>Sparkify </h1>
+    <p>Documentación de los endpoints de Sparkify API</p>
+  </div>
+</section>
+
+<!-- TARJETAS DE RUTAS -->
+<section class="features">
+  <h2 class="section-title">Endpoints Disponibles</h2>
+  <div class="features-grid">
+
+    <!-- ADD ITEM -->
+    <div class="card">
+      <div class="mac-header">
+        <span class="red"></span>
+        <span class="yellow"></span>
+        <span class="green"></span>
+      </div>
+      <span class="card-title">Agregar Item</span>
+      <p class="card-description">
+        Agrega un item al inventario de un usuario específico.
+      </p>
+      <span class="card-tag">POST</span>
+      <div class="code-editor">
+<pre><code>{
+  "type": "add",
+  "botID": "123",
+  "userID": "456",
+  "objeto": "Galleta",
+  "description": "Deliciosa galleta",
+  "cantidad": 1,
+  "rareza": "común",
+  "precio": 10,
+  "emoji": "🍪",
+  "categoria": "comida"
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- GET INVENTARIO -->
+    <div class="card">
+      <div class="mac-header">
+        <span class="red"></span>
+        <span class="yellow"></span>
+        <span class="green"></span>
+      </div>
+      <span class="card-title">Ver Inventario</span>
+      <p class="card-description">
+        Obtiene todos los items de un usuario. Puedes filtrar por formato o categoría.
+      </p>
+      <span class="card-tag">POST</span>
+      <div class="code-editor">
+<pre><code>{
+  "type": "get",
+  "botID": "123",
+  "userID": "456",
+  "format": "lista"
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- GET INVENTARIO POR CATEGORÍA -->
+    <div class="card">
+      <div class="mac-header">
+        <span class="red"></span>
+        <span class="yellow"></span>
+        <span class="green"></span>
+      </div>
+      <span class="card-title">Ver Inventario por Categoría</span>
+      <p class="card-description">
+        Obtiene todos los items de una categoría específica de un usuario.
+      </p>
+      <span class="card-tag">POST</span>
+      <div class="code-editor">
+<pre><code>{
+  "type": "get",
+  "botID": "123",
+  "userID": "456",
+  "format": "categoria",
+  "categoria": "armas"
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- DELETE ITEM -->
+    <div class="card">
+      <div class="mac-header">
+        <span class="red"></span>
+        <span class="yellow"></span>
+        <span class="green"></span>
+      </div>
+      <span class="card-title">Borrar Item</span>
+      <p class="card-description">
+        Borra un item específico del inventario de un usuario.
+      </p>
+      <span class="card-tag">POST</span>
+      <div class="code-editor">
+<pre><code>{
+  "type": "delete",
+  "botID": "123",
+  "userID": "456",
+  "objeto": "Galleta",
+  "cantidad": 1
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- CLEAR INVENTARIO -->
+    <div class="card">
+      <div class="mac-header">
+        <span class="red"></span>
+        <span class="yellow"></span>
+        <span class="green"></span>
+      </div>
+      <span class="card-title">Borrar Todo</span>
+      <p class="card-description">
+        Elimina todos los items del inventario de un usuario.
+      </p>
+      <span class="card-tag">POST</span>
+      <div class="code-editor">
+<pre><code>{
+  "type": "clear",
+  "botID": "123",
+  "userID": "456"
+}</code></pre>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2025 Sparkify API</p>
+</footer>
+
+</body>
+</html>

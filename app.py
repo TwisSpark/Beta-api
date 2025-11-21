@@ -1,12 +1,20 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import json
 import os
 from uuid import uuid4
 
 app = Flask(__name__)
 
-ARCHIVO = 'inv.json'
+# Ruta correcta hacia tu inv.json dentro de static
+ARCHIVO = os.path.join('static', 'json', 'global', 'inv.json')
 
+# Crear carpetas si no existen
+os.makedirs(os.path.dirname(ARCHIVO), exist_ok=True)
+
+# Crear archivo si no existe
+if not os.path.exists(ARCHIVO):
+    with open(ARCHIVO, 'w', encoding='utf-8') as f:
+        json.dump({}, f, ensure_ascii=False, indent=2)
 # ============================
 #   FUNCIONES DE ARCHIVO
 # ============================
@@ -40,26 +48,22 @@ def home():
 @app.route('/inventario', methods=['POST'])
 def inventario():
     input_data = request.get_json()
-
     if not input_data:
         return jsonify({"status": "error", "message": "JSON vacío o inválido"}), 400
 
-    # Validación base
+    # Campos obligatorios
     if not all(k in input_data for k in ['type', 'botID', 'userID']):
-        return jsonify({
-            'status': 'error',
-            'message': 'Faltan parámetros obligatorios'
-        }), 400
+        return jsonify({'status': 'error','message': 'Faltan parámetros obligatorios'}), 400
 
     type_op = input_data['type']
     bot_id = input_data['botID']
     user_id = input_data['userID']
 
     data = cargar_datos()
-    if bot_id not in data:
-        data[bot_id] = {}
-    if user_id not in data[bot_id]:
-        data[bot_id][user_id] = []
+    if bot_id not in data: data[bot_id] = {}
+    if user_id not in data[bot_id]: data[bot_id][user_id] = []
+
+    inventario = data[bot_id][user_id]
 
     # ============================================================
     # 🟢 ADD — Agregar item
@@ -77,23 +81,22 @@ def inventario():
         categoria = input_data.get('categoria', 'general')
 
         encontrado = False
-
-        for item in data[bot_id][user_id]:
+        for item in inventario:
             if item['objeto'] == objeto:
                 item['cantidad'] += cantidad
-                item['rareza'] = input_data.get('rareza', item['rareza'])
-                item['precio'] = input_data.get('precio', item['precio'])
-                item['emoji'] = input_data.get('emoji', item['emoji'])
-                item['description'] = input_data.get('description', item['description'])
+                item['rareza'] = rareza
+                item['precio'] = precio
+                item['emoji'] = emoji
+                item['description'] = descripcion
                 item['categoria'] = categoria
                 encontrado = True
                 break
 
         if not encontrado:
-            data[bot_id][user_id].append({
+            inventario.append({
+                'id': str(uuid4()),
                 'objeto': objeto,
                 'description': descripcion,
-                'id': str(uuid4()),
                 'cantidad': cantidad,
                 'rareza': rareza,
                 'precio': precio,
@@ -102,12 +105,13 @@ def inventario():
             })
 
         guardar_datos(data)
-
+        total_items = sum(i['cantidad'] for i in inventario)
         return jsonify({
             'status': 'success',
-            'message': 'Cantidad actualizada' if encontrado else 'Objeto agregado',
+            'message': 'Objeto agregado' if not encontrado else 'Cantidad actualizada',
             'objeto': objeto,
             'cantidad': cantidad,
+            'total_items': total_items,
             'categoria': categoria
         })
 
@@ -115,151 +119,87 @@ def inventario():
     # 🟡 GET — Obtener inventario
     # ============================================================
     elif type_op == 'get':
+        if not inventario:
+            return jsonify({'status':'success','message':'Nada por aquí… solo Sparkify, la futura reina del reino','inventario':[]})
 
-        inventario = data.get(bot_id, {}).get(user_id, [])
-
-        # Formato lista
+        # Lista simple
         if input_data.get('format') == 'lista':
-            if not inventario:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'El usuario no tiene objetos'
-                }), 404
+            lista = [f"{i.get('emoji','📦')} {i['objeto']} (×{i['cantidad']})" for i in inventario]
+            return jsonify({'status':'success','total_items': sum(i['cantidad'] for i in inventario),'inventario': lista})
 
-            lista_formato = [
-                f"{item.get('emoji', '📦')} {item['objeto']} (×{item['cantidad']})"
-                for item in inventario
-            ]
-
-            return jsonify({
-                'status': 'success',
-                'message': 'Inventario formateado',
-                'lista': lista_formato
-            })
-
-        # Categorías agrupadas
-        if input_data.get('format') == 'categoria' and 'categoria' not in input_data:
-            if not inventario:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'El usuario no tiene objetos'
-                }), 404
-
+        # Por categoría
+        if input_data.get('format') == 'categoria':
             categorias = {}
-            for item in inventario:
-                cat = item.get('categoria', 'general')
-                if cat not in categorias:
-                    categorias[cat] = []
-                categorias[cat].append(
-                    f"{item.get('emoji', '📦')} {item['objeto']} (×{item['cantidad']})"
-                )
+            for i in inventario:
+                cat = i.get('categoria','general')
+                categorias.setdefault(cat, []).append(f"{i.get('emoji','📦')} {i['objeto']} (×{i['cantidad']})")
+            # Mostrar mensaje si una categoría está vacía
+            for cat, items in categorias.items():
+                if not items:
+                    categorias[cat] = ['Nada por aquí… solo Sparkify, la futura reina del reino']
+            return jsonify({'status':'success','categorias':categorias,'total_categorias':len(categorias)})
 
-            return jsonify({
-                'status': 'success',
-                'message': 'Inventario agrupado por categorías',
-                'categorias': categorias
-            })
+        # GET normal por objeto
+        if 'objeto' in input_data:
+            objeto = input_data['objeto']
+            if objeto == 'all':
+                return jsonify({'status':'success','inventario': inventario})
+            encontrados = [i for i in inventario if i['objeto']==objeto]
+            if not encontrados:
+                return jsonify({'status':'error','message':'Objeto no encontrado'})
+            return jsonify({'status':'success','resultados': encontrados})
 
-        # Categoría específica
-        if input_data.get('format') == 'categoria' and 'categoria' in input_data:
-
-            categoria_buscada = input_data['categoria']
-
-            filtrados = [
-                f"{item.get('emoji', '📦')} {item['objeto']} (×{item['cantidad']})"
-                for item in inventario
-                if item.get('categoria', 'general') == categoria_buscada
-            ]
-
-            if not filtrados:
-                return jsonify({
-                    'status': 'error',
-                    'message': f'No hay objetos en la categoría "{categoria_buscada}"'
-                }), 404
-
-            return jsonify({
-                'status': 'success',
-                'message': f'Objetos en la categoría "{categoria_buscada}"',
-                'lista': filtrados
-            })
-
-        # GET normal
-        if 'objeto' not in input_data:
-            return jsonify({'status': 'error', 'message': 'Falta el campo objeto'}), 400
-
-        objeto = input_data['objeto']
-
-        if objeto == 'all':
-            return jsonify({
-                'status': 'success',
-                'inventario': inventario
-            })
-
-        encontrados = [i for i in inventario if i['objeto'] == objeto]
-
-        if not encontrados:
-            return jsonify({'status': 'error', 'message': 'Objeto no encontrado'}), 404
-
-        return jsonify({
-            'status': 'success',
-            'resultados': encontrados
-        })
+        return jsonify({'status':'success','inventario': inventario})
 
     # ============================================================
     # 🔴 DELETE — Borrar item
     # ============================================================
     elif type_op == 'delete':
         if 'objeto' not in input_data:
-            return jsonify({'status': 'error', 'message': 'Falta objeto'}), 400
-
+            return jsonify({'status':'error','message':'Falta objeto'}), 400
         objeto = input_data['objeto']
-        id_obj = input_data.get('id')
-        cantidad = int(input_data.get('cantidad', 0)) if 'cantidad' in input_data else None
-        inventario = data[bot_id][user_id]
+        cantidad = int(input_data.get('cantidad',0)) if 'cantidad' in input_data else None
 
         for i, item in enumerate(inventario):
-            if item['objeto'] == objeto and (not id_obj or item['id'] == id_obj):
-
+            if item['objeto']==objeto:
                 if cantidad:
                     item['cantidad'] -= cantidad
                     if item['cantidad'] <= 0:
                         inventario.pop(i)
                         guardar_datos(data)
-                        return jsonify({
-                            'status': 'success',
-                            'message': 'Objeto eliminado (cantidad llegó a cero)'
-                        })
+                        return jsonify({'status':'success','message':'Objeto eliminado (cantidad llegó a cero)'})
                     guardar_datos(data)
-                    return jsonify({
-                        'status': 'success',
-                        'message': 'Cantidad reducida'
-                    })
-
+                    return jsonify({'status':'success','message':'Cantidad reducida'})
                 inventario.pop(i)
                 guardar_datos(data)
-                return jsonify({'status': 'success', 'message': 'Objeto eliminado'})
-
-        return jsonify({'status': 'error', 'message': 'Objeto no encontrado'}), 404
+                return jsonify({'status':'success','message':'Objeto eliminado'})
+        return jsonify({'status':'error','message':'Objeto no encontrado'}), 404
 
     # ============================================================
     # 🧼 CLEAR — Borrar todo
     # ============================================================
     elif type_op == 'clear':
-        inventario = data[bot_id][user_id]
         count = len(inventario)
         data[bot_id][user_id] = []
         guardar_datos(data)
+        return jsonify({'status':'success','message': f'Se eliminó el inventario completo ({count} objetos)'})
 
-        return jsonify({
-            'status': 'success',
-            'message': f'Se eliminó el inventario completo ({count} objetos)'
-        })
-
-    # ============================================================
-    # ❗ Tipo desconocido
-    # ============================================================
     else:
-        return jsonify({'status': 'error', 'message': 'Tipo de operación inválido'}), 400
+        return jsonify({'status':'error','message':'Tipo de operación inválido'}), 400
+
+
+# ============================
+#   RUTAS HTML
+# ============================
+@app.route('/rutas')
+def ver_rutas():
+    rutas = []
+    for rule in app.url_map.iter_rules():
+        rutas.append({
+            'ruta': str(rule),
+            'metodos': ', '.join(sorted(rule.methods - {'HEAD','OPTIONS'}))
+        })
+    return render_template('global/rutas.html', rutas=rutas)
 
 
 # ============================
